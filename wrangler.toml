@@ -1,0 +1,12 @@
+name = "quotes-starry-phd"
+compatibility_date = "2026-10-13"
+workers_dev = true
+preview_urls = true
+
+[[routes]]
+pattern = "quotes.starry.phd"
+custom_domain = true
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"

@@ -3,6 +3,8 @@ name: Deploy quotes.starry.phd
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,15 +18,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Prepare static assets
+      - name: Build and verify static assets
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf dist
-          mkdir -p dist
-          cp index.html dist/index.html
+          node --check app-config.js
+          node --check platform.js
+          node --check scripts/build-static.mjs
+          node scripts/build-static.mjs
+          test -s dist/index.html
+          test -s dist/app-config.js
+          test -s dist/platform.js
+          grep -q 'app-config.js' dist/index.html
+          grep -q 'platform.js' dist/index.html
 
       - name: Verify Cloudflare credentials
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -35,6 +44,7 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing GitHub secret: CLOUDFLARE_ACCOUNT_ID"; exit 1; }
 
       - name: Deploy to Cloudflare Workers
+        if: github.event_name != 'pull_request'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -23,49 +23,21 @@
 
   async function shareBlob({ blob, fileName, text, title = '' }) {
     const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
-    const payload = { files: [file], text, title };
 
     if (typeof navigator.share === 'function') {
       const canShareFiles = typeof navigator.canShare !== 'function' || navigator.canShare({ files: [file] });
       if (canShareFiles) {
         try {
-          await navigator.share(payload);
+          await navigator.share({ files: [file], text, title });
           return { shared: true, downloaded: false };
         } catch (error) {
-          // Preserve current Web behavior: share failures fall back to a local download.
+          // Keep the existing Web behavior: any share failure falls back to download.
         }
       }
     }
 
     downloadBlob(blob, fileName);
     return { shared: false, downloaded: true };
-  }
-
-  async function shareUrl({ url, text, title = '' }) {
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ url, text, title });
-        return { shared: true, copied: false };
-      } catch (error) {
-        // Fall through to copy fallback.
-      }
-    }
-
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(url);
-      return { shared: false, copied: true };
-    }
-
-    const input = document.createElement('textarea');
-    input.value = url;
-    input.setAttribute('readonly', '');
-    input.style.position = 'fixed';
-    input.style.opacity = '0';
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand('copy');
-    input.remove();
-    return { shared: false, copied: true };
   }
 
   async function enableMotion(handler) {
@@ -90,7 +62,7 @@
   window.StarryPlatform = Object.freeze({
     runtime,
     files: Object.freeze({ downloadBlob }),
-    share: Object.freeze({ shareBlob, shareUrl }),
+    share: Object.freeze({ shareBlob }),
     motion: Object.freeze({ enable: enableMotion })
   });
 })();

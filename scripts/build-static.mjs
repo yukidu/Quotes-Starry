@@ -5,6 +5,8 @@ const root = process.cwd();
 const sourcePath = path.join(root, 'index.html');
 const distDir = path.join(root, 'dist');
 const source = fs.readFileSync(sourcePath, 'utf8');
+const configText = fs.readFileSync(path.join(root, 'app-config.js'), 'utf8');
+const platformText = fs.readFileSync(path.join(root, 'platform.js'), 'utf8');
 let output = source;
 
 function replaceOnce(input, from, to, label) {
@@ -14,11 +16,14 @@ function replaceOnce(input, from, to, label) {
   return input.slice(0, first) + to + input.slice(first + from.length);
 }
 
+// Keep config/platform as separate source modules for future native adapters, but inline
+// the tiny Web runtime into production HTML so today's Web users pay zero extra requests.
+const runtimeBootstrap = `    <script>\n${configText}\n${platformText}\n    </script>\n`;
 output = replaceOnce(
   output,
   '    <script>\n        const STORAGE_KEYS',
-  '    <script src="./app-config.js"></script>\n    <script src="./platform.js"></script>\n    <script>\n        const STORAGE_KEYS',
-  'platform bootstrap scripts'
+  `${runtimeBootstrap}    <script>\n        const STORAGE_KEYS`,
+  'platform bootstrap'
 );
 
 output = replaceOnce(
@@ -56,18 +61,9 @@ output = replaceOnce(
   'download platform delegation'
 );
 
-output = replaceOnce(
-  output,
-  `        window.closeInstallModal = () => { document.getElementById('installModal').classList.add('hidden'); };`,
-  `        window.closeInstallModal = () => { document.getElementById('installModal').classList.add('hidden'); };\n        window.shareApp = async () => {\n            const result = await window.StarryPlatform.share.shareUrl({\n                title: document.title,\n                text: '改變生命未來式 Be A Better You',\n                url: window.location.href\n            });\n            if (result.copied) showToast("連結已複製 📋");\n        };`,
-  'app share platform delegation'
-);
-
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'index.html'), output);
-fs.copyFileSync(path.join(root, 'app-config.js'), path.join(distDir, 'app-config.js'));
-fs.copyFileSync(path.join(root, 'platform.js'), path.join(distDir, 'platform.js'));
 
 function bytes(text) {
   return Buffer.byteLength(text, 'utf8');
@@ -82,20 +78,21 @@ function sumInlineBlocks(html, tagName) {
   return total;
 }
 
-const configText = fs.readFileSync(path.join(root, 'app-config.js'), 'utf8');
-const platformText = fs.readFileSync(path.join(root, 'platform.js'), 'utf8');
+const runtimeBytes = bytes(configText) + bytes(platformText);
 const report = {
   before: {
     html: bytes(source),
     inlineJs: sumInlineBlocks(source, 'script'),
     inlineCss: sumInlineBlocks(source, 'style'),
-    firstPartyRuntimeJs: 0
+    firstPartyRuntimeJs: 0,
+    firstPartyRuntimeRequests: 0
   },
   after: {
     html: bytes(output),
     inlineJs: sumInlineBlocks(output, 'script'),
     inlineCss: sumInlineBlocks(output, 'style'),
-    firstPartyRuntimeJs: bytes(configText) + bytes(platformText)
+    firstPartyRuntimeJs: runtimeBytes,
+    firstPartyRuntimeRequests: 0
   },
   dependenciesAdded: 0,
   nativeInitializationAdded: 0
@@ -105,11 +102,15 @@ report.delta = {
   html: report.after.html - report.before.html,
   inlineJs: report.after.inlineJs - report.before.inlineJs,
   inlineCss: report.after.inlineCss - report.before.inlineCss,
-  firstPartyRuntimeJs: report.after.firstPartyRuntimeJs - report.before.firstPartyRuntimeJs
+  firstPartyRuntimeJs: report.after.firstPartyRuntimeJs - report.before.firstPartyRuntimeJs,
+  firstPartyRuntimeRequests: 0
 };
 
-if (report.after.firstPartyRuntimeJs > 8 * 1024) {
-  throw new Error(`Platform/config runtime JS exceeds 8 KiB budget: ${report.after.firstPartyRuntimeJs} bytes`);
+if (runtimeBytes > 6 * 1024) {
+  throw new Error(`Platform/config runtime JS exceeds 6 KiB budget: ${runtimeBytes} bytes`);
+}
+if (output.includes('src="./app-config.js"') || output.includes('src="./platform.js"')) {
+  throw new Error('Platform/config runtime must not add blocking production requests');
 }
 
 console.log(JSON.stringify(report, null, 2));
@@ -125,9 +126,11 @@ if (process.env.GITHUB_STEP_SUMMARY) {
     `| Inline JS | ${kb(report.before.inlineJs)} | ${kb(report.after.inlineJs)} | ${kb(report.delta.inlineJs)} |`,
     `| Inline CSS | ${kb(report.before.inlineCss)} | ${kb(report.after.inlineCss)} | ${kb(report.delta.inlineCss)} |`,
     `| First-party platform/config JS | ${kb(report.before.firstPartyRuntimeJs)} | ${kb(report.after.firstPartyRuntimeJs)} | ${kb(report.delta.firstPartyRuntimeJs)} |`,
+    `| Extra first-party runtime requests | ${report.before.firstPartyRuntimeRequests} | ${report.after.firstPartyRuntimeRequests} | 0 |`,
     '',
     '- Dependencies added: 0',
     '- Native initialization added: 0',
+    '- Unused camera/notification/auth native code added: 0',
     ''
   ].join('\n'));
 }

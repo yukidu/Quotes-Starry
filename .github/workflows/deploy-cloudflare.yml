@@ -27,10 +27,10 @@ jobs:
           node --check scripts/build-static.mjs
           node scripts/build-static.mjs
           test -s dist/index.html
-          test -s dist/app-config.js
-          test -s dist/platform.js
-          grep -q 'app-config.js' dist/index.html
-          grep -q 'platform.js' dist/index.html
+          grep -q 'window.StarryConfig' dist/index.html
+          grep -q 'window.StarryPlatform' dist/index.html
+          ! grep -q 'src="./app-config.js"' dist/index.html
+          ! grep -q 'src="./platform.js"' dist/index.html
 
       - name: Verify Cloudflare credentials
         if: github.event_name != 'pull_request'

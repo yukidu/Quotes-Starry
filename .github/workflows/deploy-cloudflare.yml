@@ -16,13 +16,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Prepare static assets
+      - name: Build and verify static assets
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf dist
-          mkdir -p dist
-          cp index.html dist/index.html
+          node --check app-config.js
+          node --check platform.js
+          node --check scripts/build-static.mjs
+          node scripts/build-static.mjs
+          test -s dist/index.html
+          test -s dist/app-config.js
+          test -s dist/platform.js
+          grep -q 'app-config.js' dist/index.html
+          grep -q 'platform.js' dist/index.html
 
       - name: Verify Cloudflare credentials
         shell: bash

@@ -90,9 +90,10 @@ jobs:
               -H 'Accept: application/json' \
               -H 'Origin: https://quotes.starry.phd' \
               "https://id.starry.phd/api/apps/quotes/identity?smoke=${nonce}" -o /tmp/identity.json; then
+              tr -d '\r' < /tmp/identity.headers > /tmp/identity.headers.clean
               if node -e "const x=JSON.parse(require('fs').readFileSync('/tmp/identity.json','utf8')); if(x.authenticated!==false) process.exit(1)" \
-                && grep -Eqi '^access-control-allow-origin: https://quotes\.starry\.phd\r?$' /tmp/identity.headers \
-                && grep -Eqi '^access-control-allow-credentials: true\r?$' /tmp/identity.headers; then
+                && grep -Eqi '^access-control-allow-origin: https://quotes\.starry\.phd$' /tmp/identity.headers.clean \
+                && grep -Eqi '^access-control-allow-credentials: true$' /tmp/identity.headers.clean; then
                 identity_ok=1
               fi
             fi

@@ -7,6 +7,7 @@ const distDir = path.join(root, 'dist');
 const source = fs.readFileSync(sourcePath, 'utf8');
 const configText = fs.readFileSync(path.join(root, 'app-config.js'), 'utf8');
 const platformText = fs.readFileSync(path.join(root, 'platform.js'), 'utf8');
+const uiText = fs.readFileSync(path.join(root, 'starry-ui.js'), 'utf8');
 let output = source;
 
 function replaceOnce(input, from, to, label) {
@@ -24,14 +25,14 @@ function removeSection(input, startMarker, endMarker, label) {
   return input.slice(0, start) + input.slice(end);
 }
 
-// Keep config/platform as separate source modules for future native adapters, but inline
-// the tiny Web runtime into production HTML so today's Web users pay zero extra requests.
-const runtimeBootstrap = `    <script>\n${configText}\n${platformText}\n    </script>\n`;
+// Keep config/platform/UI as separate source modules for future adapters, but inline
+// the small Web runtime into production HTML so today's Web users pay zero extra requests.
+const runtimeBootstrap = `    <script>\n${configText}\n${platformText}\n${uiText}\n    </script>\n`;
 output = replaceOnce(
   output,
   '    <script>\n        const STORAGE_KEYS',
   `${runtimeBootstrap}    <script>\n        const STORAGE_KEYS`,
-  'platform bootstrap'
+  'platform/UI bootstrap'
 );
 
 output = replaceOnce(
@@ -106,6 +107,13 @@ output = replaceOnce(
 
 output = replaceOnce(
   output,
+  `        window.resetAllGame = () => { \n            if (!confirm("確定要重置進度並接收新的宇宙能量嗎？")) return;`,
+  `        window.resetAllGame = async () => { \n            const confirmed = await window.StarryUI.confirm({ title: '重置抽卡進度？', message: '確定要重置進度並接收新的宇宙能量嗎？', confirmText: '確定重置', cancelText: '取消' });\n            if (!confirmed) return;`,
+  'Starry reset confirmation dialog'
+);
+
+output = replaceOnce(
+  output,
   'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=',
   '${window.StarryConfig.qrCodeApiBaseUrl}?size=150x150&data=',
   'QR API config'
@@ -131,6 +139,12 @@ for (const legacy of ['nameModal', 'userNameInput', 'saveUserName', 'resetName',
 if (!output.includes('歡迎你') || !output.includes('window.StarryPlatform.auth.getDisplayName')) {
   throw new Error('Starry ID visitor/member identity UI missing from production build');
 }
+if (!output.includes('window.StarryUI') || !output.includes('starry-topbar') || !output.includes('starry-confirm-card')) {
+  throw new Error('Starry standard navigation/confirmation UI missing from production build');
+}
+if (output.includes('if (!confirm(')) {
+  throw new Error('Native browser confirm remains in production build');
+}
 
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
@@ -149,7 +163,7 @@ function sumInlineBlocks(html, tagName) {
   return total;
 }
 
-const runtimeBytes = bytes(configText) + bytes(platformText);
+const runtimeBytes = bytes(configText) + bytes(platformText) + bytes(uiText);
 const report = {
   before: {
     html: bytes(source),
@@ -177,11 +191,11 @@ report.delta = {
   firstPartyRuntimeRequests: 0
 };
 
-if (runtimeBytes > 8 * 1024) {
-  throw new Error(`Platform/config runtime JS exceeds 8 KiB budget: ${runtimeBytes} bytes`);
+if (runtimeBytes > 32 * 1024) {
+  throw new Error(`Platform/config/UI runtime JS exceeds 32 KiB budget: ${runtimeBytes} bytes`);
 }
-if (output.includes('src="./app-config.js"') || output.includes('src="./platform.js"')) {
-  throw new Error('Platform/config runtime must not add blocking production requests');
+if (output.includes('src="./app-config.js"') || output.includes('src="./platform.js"') || output.includes('src="./starry-ui.js"')) {
+  throw new Error('Platform/config/UI runtime must not add blocking production requests');
 }
 
 console.log(JSON.stringify(report, null, 2));
@@ -189,19 +203,20 @@ console.log(JSON.stringify(report, null, 2));
 if (process.env.GITHUB_STEP_SUMMARY) {
   const kb = value => `${(value / 1024).toFixed(2)} KiB`;
   fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
-    '## Web First / Capacitor-ready size report',
+    '## Web First / Starry UI size report',
     '',
     '| Metric | Before | After | Delta |',
     '| --- | ---: | ---: | ---: |',
     `| HTML | ${kb(report.before.html)} | ${kb(report.after.html)} | ${kb(report.delta.html)} |`,
     `| Inline JS | ${kb(report.before.inlineJs)} | ${kb(report.after.inlineJs)} | ${kb(report.delta.inlineJs)} |`,
     `| Inline CSS | ${kb(report.before.inlineCss)} | ${kb(report.after.inlineCss)} | ${kb(report.delta.inlineCss)} |`,
-    `| First-party platform/config JS | ${kb(report.before.firstPartyRuntimeJs)} | ${kb(report.after.firstPartyRuntimeJs)} | ${kb(report.delta.firstPartyRuntimeJs)} |`,
+    `| First-party platform/config/UI JS | ${kb(report.before.firstPartyRuntimeJs)} | ${kb(report.after.firstPartyRuntimeJs)} | ${kb(report.delta.firstPartyRuntimeJs)} |`,
     `| Extra first-party runtime requests | ${report.before.firstPartyRuntimeRequests} | ${report.after.firstPartyRuntimeRequests} | 0 |`,
     '',
     '- Dependencies added: 0',
     '- Native initialization added: 0',
     '- Starry ID name/rank is not persisted into guest-name storage',
+    '- Native browser confirm removed from production reset flow',
     ''
   ].join('\n'));
 }

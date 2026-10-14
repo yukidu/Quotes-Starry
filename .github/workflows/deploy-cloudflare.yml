@@ -24,18 +24,24 @@ jobs:
           set -euo pipefail
           node --check app-config.js
           node --check platform.js
+          node --check starry-ui.js
           node --check scripts/build-static.mjs
           node scripts/build-static.mjs
           test -s dist/index.html
           grep -q 'window.StarryConfig' dist/index.html
           grep -q 'window.StarryPlatform' dist/index.html
+          grep -q 'window.StarryUI' dist/index.html
+          grep -q 'starry-topbar' dist/index.html
+          grep -q 'starry-confirm-card' dist/index.html
           grep -q '歡迎你' dist/index.html
           grep -q 'getDisplayName' dist/index.html
           ! grep -q 'src="./app-config.js"' dist/index.html
           ! grep -q 'src="./platform.js"' dist/index.html
+          ! grep -q 'src="./starry-ui.js"' dist/index.html
           ! grep -q 'nameModal' dist/index.html
           ! grep -q 'better_you_user_name' dist/index.html
           ! grep -q '寄送人：好友' dist/index.html
+          ! grep -Fq 'if (!confirm(' dist/index.html
 
       - name: Verify Cloudflare credentials
         if: github.event_name != 'pull_request'
@@ -77,10 +83,14 @@ jobs:
               if grep -q 'https://id.starry.phd' /tmp/quotes.html \
                 && grep -q '/api/apps/quotes/identity' /tmp/quotes.html \
                 && grep -q '/auth/quotes' /tmp/quotes.html \
+                && grep -q 'window.StarryUI' /tmp/quotes.html \
+                && grep -q 'starry-topbar' /tmp/quotes.html \
+                && grep -q 'starry-confirm-card' /tmp/quotes.html \
                 && grep -q '歡迎你' /tmp/quotes.html \
                 && ! grep -q 'nameModal' /tmp/quotes.html \
                 && ! grep -q 'better_you_user_name' /tmp/quotes.html \
-                && ! grep -q '寄送人：好友' /tmp/quotes.html; then
+                && ! grep -q '寄送人：好友' /tmp/quotes.html \
+                && ! grep -Fq 'if (!confirm(' /tmp/quotes.html; then
                 quotes_ok=1
               fi
             fi

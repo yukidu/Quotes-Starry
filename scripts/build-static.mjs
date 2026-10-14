@@ -72,7 +72,7 @@ output = replaceOnce(
 
 output = replaceOnce(
   output,
-  `\n        function updateWelcomeUI(name) { \n            const line = document.getElementById('welcomeLine'), m = document.getElementById('welcomeMsg'); \n            if (name && line && m) { m.textContent = \`歡迎 ${name} 一起改變生命未來式！\`; line.style.display = 'flex'; } \n        }\n`,
+  `\n        function updateWelcomeUI(name) { \n            const line = document.getElementById('welcomeLine'), m = document.getElementById('welcomeMsg'); \n            if (name && line && m) { m.textContent = \`歡迎 ${'${'}name} 一起改變生命未來式！\`; line.style.display = 'flex'; } \n        }\n`,
   '\n',
   'legacy welcome name renderer'
 );

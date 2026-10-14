@@ -29,8 +29,13 @@ jobs:
           test -s dist/index.html
           grep -q 'window.StarryConfig' dist/index.html
           grep -q 'window.StarryPlatform' dist/index.html
+          grep -q '歡迎你' dist/index.html
+          grep -q 'getDisplayName' dist/index.html
           ! grep -q 'src="./app-config.js"' dist/index.html
           ! grep -q 'src="./platform.js"' dist/index.html
+          ! grep -q 'nameModal' dist/index.html
+          ! grep -q 'better_you_user_name' dist/index.html
+          ! grep -q '寄送人：好友' dist/index.html
 
       - name: Verify Cloudflare credentials
         if: github.event_name != 'pull_request'
@@ -71,7 +76,11 @@ jobs:
               "https://quotes.starry.phd/?smoke=${nonce}" -o /tmp/quotes.html; then
               if grep -q 'https://id.starry.phd' /tmp/quotes.html \
                 && grep -q '/api/apps/quotes/identity' /tmp/quotes.html \
-                && grep -q '/auth/quotes' /tmp/quotes.html; then
+                && grep -q '/auth/quotes' /tmp/quotes.html \
+                && grep -q '歡迎你' /tmp/quotes.html \
+                && ! grep -q 'nameModal' /tmp/quotes.html \
+                && ! grep -q 'better_you_user_name' /tmp/quotes.html \
+                && ! grep -q '寄送人：好友' /tmp/quotes.html; then
                 quotes_ok=1
               fi
             fi

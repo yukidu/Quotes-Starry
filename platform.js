@@ -10,8 +10,7 @@
   });
 
   let motionHandler = null;
-  const IDENTITY_KEY = 'starry_quotes_identity_v1';
-  const USERNAME_KEY = 'better_you_user_name';
+  let currentIdentity = null;
 
   function downloadBlob(blob, fileName) {
     const url = URL.createObjectURL(blob);
@@ -55,12 +54,27 @@
     return true;
   }
 
-  function getCachedIdentity() {
-    try { return JSON.parse(localStorage.getItem(IDENTITY_KEY) || 'null'); } catch { return null; }
+  function getDisplayName(identity = currentIdentity) {
+    if (!identity?.authenticated || !identity?.name) return '';
+    const rank = String(identity.approvedRank || identity.rank || '').trim();
+    return [String(identity.name).trim(), rank].filter(Boolean).join(' ');
+  }
+
+  function getIdentity() {
+    return currentIdentity ? { ...currentIdentity } : null;
   }
 
   function renderIdentity(identity) {
     const nav = document.querySelector('.sticky-nav .max-w-6xl');
+    const welcome = document.getElementById('welcomeMsg');
+    const welcomeLine = document.getElementById('welcomeLine');
+    const displayName = getDisplayName(identity);
+
+    if (welcome && welcomeLine) {
+      welcome.textContent = displayName ? `歡迎你，${displayName}` : '歡迎你';
+      welcomeLine.style.display = 'flex';
+    }
+
     if (!nav) return;
     let button = document.getElementById('starryIdentityBtn');
     if (!button) {
@@ -70,9 +84,9 @@
       button.className = 'w-full mb-2 bg-white border-2 border-black rounded-xl px-3 py-2 font-black text-xs shadow-[3px_3px_0px_#000] text-left';
       nav.insertBefore(button, nav.firstChild);
     }
-    const rank = identity?.approvedRank || identity?.rank || '';
-    if (identity?.authenticated && identity?.name) {
-      button.textContent = `👤 ${identity.name}${rank ? ` · ${rank}` : ''}`;
+
+    if (displayName) {
+      button.textContent = `👤 ${displayName}`;
       button.onclick = () => { window.location.href = window.StarryConfig.starryIdOrigin + '/'; };
     } else {
       button.textContent = '🔐 使用 Google 登入 Starry ID';
@@ -82,6 +96,9 @@
 
   async function refreshIdentity() {
     const origin = window.StarryConfig.starryIdOrigin;
+    currentIdentity = null;
+    renderIdentity(null);
+
     try {
       const response = await fetch(origin + '/api/apps/quotes/identity', {
         method: 'GET',
@@ -92,35 +109,28 @@
       });
       const identity = await response.json().catch(() => null);
       if (response.ok && identity?.authenticated && identity?.name) {
-        localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
-        localStorage.setItem(USERNAME_KEY, identity.name);
-        const welcome = document.getElementById('welcomeMsg');
-        const welcomeLine = document.getElementById('welcomeLine');
-        if (welcome && welcomeLine) {
-          welcome.textContent = `歡迎 ${identity.name} 一起改變生命未來式！`;
-          welcomeLine.style.display = 'flex';
-        }
-        document.getElementById('nameModal')?.classList.add('hidden');
-        renderIdentity(identity);
+        currentIdentity = identity;
+        renderIdentity(currentIdentity);
       } else {
-        localStorage.removeItem(IDENTITY_KEY);
+        currentIdentity = null;
         renderIdentity(null);
       }
+
       const url = new URL(window.location.href);
       if (url.searchParams.get('starry') === 'login') {
         url.searchParams.delete('starry');
         history.replaceState(null, '', url.pathname + url.search + url.hash);
       }
-      return identity;
+      return getIdentity();
     } catch (error) {
-      const cached = getCachedIdentity();
-      renderIdentity(cached);
-      return cached;
+      currentIdentity = null;
+      renderIdentity(null);
+      return null;
     }
   }
 
   function initIdentity() {
-    renderIdentity(getCachedIdentity());
+    renderIdentity(null);
     void refreshIdentity();
   }
 
@@ -129,7 +139,7 @@
     files: Object.freeze({ downloadBlob }),
     share: Object.freeze({ shareBlob }),
     motion: Object.freeze({ enable: enableMotion }),
-    auth: Object.freeze({ refreshIdentity })
+    auth: Object.freeze({ refreshIdentity, getIdentity, getDisplayName })
   });
 
   if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', initIdentity, { once: true });

@@ -24,13 +24,21 @@ jobs:
           set -euo pipefail
           node --check app-config.js
           node --check platform.js
+          node --check starry-auth.js
           node --check scripts/build-static.mjs
           node scripts/build-static.mjs
           test -s dist/index.html
           grep -q 'window.StarryConfig' dist/index.html
           grep -q 'window.StarryPlatform' dist/index.html
+          grep -q 'window.StarryIdentity' dist/index.html
+          grep -q 'Starry ID 登入' dist/index.html
+          grep -q '歡迎你' dist/index.html
           ! grep -q 'src="./app-config.js"' dist/index.html
           ! grep -q 'src="./platform.js"' dist/index.html
+          ! grep -q 'src="./starry-auth.js"' dist/index.html
+          ! grep -q 'nameModal' dist/index.html
+          ! grep -q 'better_you_user_name' dist/index.html
+          ! grep -q '寄送人：好友' dist/index.html
 
       - name: Verify Cloudflare credentials
         if: github.event_name != 'pull_request'

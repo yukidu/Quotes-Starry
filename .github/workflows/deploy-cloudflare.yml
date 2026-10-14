@@ -50,3 +50,60 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+
+      - name: Verify Quotes and Starry ID production integration
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          user_agent='Mozilla/5.0 StarryQuotesProductionSmoke/1.0'
+          echo 'Waiting for production propagation...'
+          sleep 10
+
+          for attempt in $(seq 1 18); do
+            echo "Production verification attempt ${attempt}/18"
+            nonce="${GITHUB_SHA}-${attempt}"
+            quotes_ok=0
+            login_ok=0
+            identity_ok=0
+
+            if curl -A "${user_agent}" --connect-timeout 5 --max-time 15 -fsS \
+              "https://quotes.starry.phd/?smoke=${nonce}" -o /tmp/quotes.html; then
+              if grep -q 'https://id.starry.phd' /tmp/quotes.html \
+                && grep -q '/api/apps/quotes/identity' /tmp/quotes.html \
+                && grep -q '/auth/quotes' /tmp/quotes.html; then
+                quotes_ok=1
+              fi
+            fi
+
+            if curl -A "${user_agent}" --connect-timeout 5 --max-time 15 -fsS \
+              "https://id.starry.phd/auth/quotes?smoke=${nonce}" -o /tmp/quotes-login.html; then
+              if grep -q 'Starry ID × 繁星語錄' /tmp/quotes-login.html \
+                && grep -q 'IDENTITY_ONLY=true' /tmp/quotes-login.html \
+                && grep -q 'https://quotes.starry.phd' /tmp/quotes-login.html; then
+                login_ok=1
+              fi
+            fi
+
+            if curl -A "${user_agent}" --connect-timeout 5 --max-time 15 -fsS \
+              -D /tmp/identity.headers \
+              -H 'Accept: application/json' \
+              -H 'Origin: https://quotes.starry.phd' \
+              "https://id.starry.phd/api/apps/quotes/identity?smoke=${nonce}" -o /tmp/identity.json; then
+              if node -e "const x=JSON.parse(require('fs').readFileSync('/tmp/identity.json','utf8')); if(x.authenticated!==false) process.exit(1)" \
+                && grep -Eqi '^access-control-allow-origin: https://quotes\.starry\.phd\r?$' /tmp/identity.headers \
+                && grep -Eqi '^access-control-allow-credentials: true\r?$' /tmp/identity.headers; then
+                identity_ok=1
+              fi
+            fi
+
+            echo "quotes=${quotes_ok}, login=${login_ok}, identity=${identity_ok}"
+            if [ "${quotes_ok}" = 1 ] && [ "${login_ok}" = 1 ] && [ "${identity_ok}" = 1 ]; then
+              echo 'Quotes + Starry ID production integration verified successfully.'
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo 'Production integration verification failed after all retries.' >&2
+          exit 1

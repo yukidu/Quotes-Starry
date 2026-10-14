@@ -65,7 +65,6 @@
   }
 
   function renderIdentity(identity) {
-    const nav = document.querySelector('.sticky-nav .max-w-6xl');
     const welcome = document.getElementById('welcomeMsg');
     const welcomeLine = document.getElementById('welcomeLine');
     const displayName = getDisplayName(identity);
@@ -75,23 +74,7 @@
       welcomeLine.style.display = 'flex';
     }
 
-    if (!nav) return;
-    let button = document.getElementById('starryIdentityBtn');
-    if (!button) {
-      button = document.createElement('button');
-      button.id = 'starryIdentityBtn';
-      button.type = 'button';
-      button.className = 'w-full mb-2 bg-white border-2 border-black rounded-xl px-3 py-2 font-black text-xs shadow-[3px_3px_0px_#000] text-left';
-      nav.insertBefore(button, nav.firstChild);
-    }
-
-    if (displayName) {
-      button.textContent = `👤 ${displayName}`;
-      button.onclick = () => { window.location.href = window.StarryConfig.starryIdOrigin + '/'; };
-    } else {
-      button.textContent = '🔐 使用 Google 登入 Starry ID';
-      button.onclick = () => { window.location.href = window.StarryConfig.starryIdOrigin + '/auth/quotes'; };
-    }
+    window.StarryUI?.renderIdentity?.(identity, displayName);
   }
 
   async function refreshIdentity() {

@@ -26,8 +26,10 @@ jobs:
           node --check platform.js
           node --check starry-ui.js
           node --check scripts/build-static.mjs
+          node --check scripts/optimize-runtime.mjs
           node --check scripts/fit-answer-overlay.mjs
           node scripts/build-static.mjs
+          node scripts/optimize-runtime.mjs
           node scripts/fit-answer-overlay.mjs
           test -s dist/index.html
           grep -q 'window.StarryConfig' dist/index.html
@@ -37,9 +39,6 @@ jobs:
           grep -q 'starry-confirm-card' dist/index.html
           grep -q 'starry-modal-responsive' dist/index.html
           grep -q 'starry-modal-nav-sync' dist/index.html
-          grep -q 'record-modal-layout-v2' dist/index.html
-          grep -q '#recordModal .tab-btn' dist/index.html
-          grep -q '#recordModal #favoriteList' dist/index.html
           grep -q '#recordModal' dist/index.html
           grep -q '#installModal' dist/index.html
           grep -q '#shakeTutorialModal' dist/index.html
@@ -47,6 +46,13 @@ jobs:
           grep -q 'getBoundingClientRect().height' dist/index.html
           grep -q '歡迎你' dist/index.html
           grep -q 'getDisplayName' dist/index.html
+          grep -q 'safeJsonParse' dist/index.html
+          grep -q 'AbortController' dist/index.html
+          grep -q 'document.createDocumentFragment' dist/index.html
+          grep -q 'ensureHtml2Canvas' dist/index.html
+          grep -q 'window.shareApp = async' dist/index.html
+          grep -q 'window.shareRecordAsImage = async' dist/index.html
+          grep -q 'aria-live="polite"' dist/index.html
           ! grep -q 'src="./app-config.js"' dist/index.html
           ! grep -q 'src="./platform.js"' dist/index.html
           ! grep -q 'src="./starry-ui.js"' dist/index.html
@@ -54,6 +60,9 @@ jobs:
           ! grep -q 'better_you_user_name' dist/index.html
           ! grep -q '寄送人：好友' dist/index.html
           ! grep -Fq 'if (!confirm(' dist/index.html
+          ! grep -Fq 'localStorage.clear();' dist/index.html
+          ! grep -Fq 'sessionStorage.clear();' dist/index.html
+          ! grep -Fq 'html2canvas.min.js"></script>' dist/index.html
 
       - name: Verify Cloudflare credentials
         if: github.event_name != 'pull_request'
@@ -100,17 +109,21 @@ jobs:
                 && grep -q 'starry-confirm-card' /tmp/quotes.html \
                 && grep -q 'starry-modal-responsive' /tmp/quotes.html \
                 && grep -q 'starry-modal-nav-sync' /tmp/quotes.html \
-                && grep -q 'record-modal-layout-v2' /tmp/quotes.html \
-                && grep -q '#recordModal .tab-btn' /tmp/quotes.html \
-                && grep -q '#recordModal #favoriteList' /tmp/quotes.html \
                 && grep -q '#recordModal' /tmp/quotes.html \
                 && grep -q '#installModal' /tmp/quotes.html \
                 && grep -q '#shakeTutorialModal' /tmp/quotes.html \
+                && grep -q 'safeJsonParse' /tmp/quotes.html \
+                && grep -q 'AbortController' /tmp/quotes.html \
+                && grep -q 'ensureHtml2Canvas' /tmp/quotes.html \
+                && grep -q 'window.shareApp = async' /tmp/quotes.html \
+                && grep -q 'window.shareRecordAsImage = async' /tmp/quotes.html \
                 && grep -q '歡迎你' /tmp/quotes.html \
                 && ! grep -q 'nameModal' /tmp/quotes.html \
                 && ! grep -q 'better_you_user_name' /tmp/quotes.html \
                 && ! grep -q '寄送人：好友' /tmp/quotes.html \
-                && ! grep -Fq 'if (!confirm(' /tmp/quotes.html; then
+                && ! grep -Fq 'if (!confirm(' /tmp/quotes.html \
+                && ! grep -Fq 'localStorage.clear();' /tmp/quotes.html \
+                && ! grep -Fq 'html2canvas.min.js"></script>' /tmp/quotes.html; then
                 quotes_ok=1
               fi
             fi

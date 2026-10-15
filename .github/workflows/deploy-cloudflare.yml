@@ -35,8 +35,12 @@ jobs:
           grep -q 'window.StarryUI' dist/index.html
           grep -q 'starry-topbar' dist/index.html
           grep -q 'starry-confirm-card' dist/index.html
-          grep -q 'answer-overlay-responsive' dist/index.html
-          grep -q 'answer-overlay-nav-sync' dist/index.html
+          grep -q 'starry-modal-responsive' dist/index.html
+          grep -q 'starry-modal-nav-sync' dist/index.html
+          grep -q '#recordModal' dist/index.html
+          grep -q '#installModal' dist/index.html
+          grep -q '#shakeTutorialModal' dist/index.html
+          grep -q '#photoZoomOverlay' dist/index.html
           grep -q 'getBoundingClientRect().height' dist/index.html
           grep -q '歡迎你' dist/index.html
           grep -q 'getDisplayName' dist/index.html
@@ -91,8 +95,11 @@ jobs:
                 && grep -q 'window.StarryUI' /tmp/quotes.html \
                 && grep -q 'starry-topbar' /tmp/quotes.html \
                 && grep -q 'starry-confirm-card' /tmp/quotes.html \
-                && grep -q 'answer-overlay-responsive' /tmp/quotes.html \
-                && grep -q 'answer-overlay-nav-sync' /tmp/quotes.html \
+                && grep -q 'starry-modal-responsive' /tmp/quotes.html \
+                && grep -q 'starry-modal-nav-sync' /tmp/quotes.html \
+                && grep -q '#recordModal' /tmp/quotes.html \
+                && grep -q '#installModal' /tmp/quotes.html \
+                && grep -q '#shakeTutorialModal' /tmp/quotes.html \
                 && grep -q '歡迎你' /tmp/quotes.html \
                 && ! grep -q 'nameModal' /tmp/quotes.html \
                 && ! grep -q 'better_you_user_name' /tmp/quotes.html \

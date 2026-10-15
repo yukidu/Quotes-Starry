@@ -26,13 +26,18 @@ jobs:
           node --check platform.js
           node --check starry-ui.js
           node --check scripts/build-static.mjs
+          node --check scripts/fit-answer-overlay.mjs
           node scripts/build-static.mjs
+          node scripts/fit-answer-overlay.mjs
           test -s dist/index.html
           grep -q 'window.StarryConfig' dist/index.html
           grep -q 'window.StarryPlatform' dist/index.html
           grep -q 'window.StarryUI' dist/index.html
           grep -q 'starry-topbar' dist/index.html
           grep -q 'starry-confirm-card' dist/index.html
+          grep -q 'answer-overlay-responsive' dist/index.html
+          grep -q 'answer-overlay-nav-sync' dist/index.html
+          grep -q 'getBoundingClientRect().height' dist/index.html
           grep -q '歡迎你' dist/index.html
           grep -q 'getDisplayName' dist/index.html
           ! grep -q 'src="./app-config.js"' dist/index.html
@@ -86,6 +91,8 @@ jobs:
                 && grep -q 'window.StarryUI' /tmp/quotes.html \
                 && grep -q 'starry-topbar' /tmp/quotes.html \
                 && grep -q 'starry-confirm-card' /tmp/quotes.html \
+                && grep -q 'answer-overlay-responsive' /tmp/quotes.html \
+                && grep -q 'answer-overlay-nav-sync' /tmp/quotes.html \
                 && grep -q '歡迎你' /tmp/quotes.html \
                 && ! grep -q 'nameModal' /tmp/quotes.html \
                 && ! grep -q 'better_you_user_name' /tmp/quotes.html \

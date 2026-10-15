@@ -37,6 +37,9 @@ jobs:
           grep -q 'starry-confirm-card' dist/index.html
           grep -q 'starry-modal-responsive' dist/index.html
           grep -q 'starry-modal-nav-sync' dist/index.html
+          grep -q 'record-modal-layout-v2' dist/index.html
+          grep -q '#recordModal .tab-btn' dist/index.html
+          grep -q '#recordModal #favoriteList' dist/index.html
           grep -q '#recordModal' dist/index.html
           grep -q '#installModal' dist/index.html
           grep -q '#shakeTutorialModal' dist/index.html
@@ -97,6 +100,9 @@ jobs:
                 && grep -q 'starry-confirm-card' /tmp/quotes.html \
                 && grep -q 'starry-modal-responsive' /tmp/quotes.html \
                 && grep -q 'starry-modal-nav-sync' /tmp/quotes.html \
+                && grep -q 'record-modal-layout-v2' /tmp/quotes.html \
+                && grep -q '#recordModal .tab-btn' /tmp/quotes.html \
+                && grep -q '#recordModal #favoriteList' /tmp/quotes.html \
                 && grep -q '#recordModal' /tmp/quotes.html \
                 && grep -q '#installModal' /tmp/quotes.html \
                 && grep -q '#shakeTutorialModal' /tmp/quotes.html \

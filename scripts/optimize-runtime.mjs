@@ -29,6 +29,13 @@ html = replaceOnce(
 
 html = replaceOnce(
   html,
+  '        body.theme-love { --card-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; --card-border: 69px solid #FF69B4; }',
+  '        body.theme-love { --card-radius: 28px; --card-border: 4px solid #FF4F9A; --card-shadow: 6px 6px 0px #000; }\n        body.theme-love .card-front { background: linear-gradient(145deg, #FF9DCE 0%, #FF69B4 55%, #FF4F9A 100%); color: #000; }\n        body.theme-love .card-emoji-bg { opacity: 0.28; }',
+  'stable pink-heart theme'
+);
+
+html = replaceOnce(
+  html,
   `        window.initInteraction = async () => {\n            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();\n            if (audioCtx.state === 'suspended') audioCtx.resume();\n            await window.StarryPlatform.motion.enable(handleShake);\n        };`,
   `        let interactionInitialized = false;\n        window.initInteraction = async () => {\n            if (interactionInitialized) return;\n            interactionInitialized = true;\n            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();\n            if (audioCtx.state === 'suspended') await audioCtx.resume().catch(() => {});\n            await window.StarryPlatform.motion.enable(handleShake);\n        };`,
   'one-time interaction initialization'
@@ -160,7 +167,8 @@ html = replaceOnce(
 const requiredMarkers = [
   'safeJsonParse', 'shuffleInPlace', 'fitElementFontSize', 'ensureHtml2Canvas',
   'window.shareApp = async', 'window.shareRecordAsImage = async', 'AbortController',
-  'document.createDocumentFragment', "localStorage.removeItem(key)", 'aria-live="polite"'
+  'document.createDocumentFragment', "localStorage.removeItem(key)", 'aria-live="polite"',
+  'body.theme-love { --card-radius: 28px; --card-border: 4px solid #FF4F9A;'
 ];
 for (const marker of requiredMarkers) {
   if (!html.includes(marker)) throw new Error(`Runtime optimization marker missing: ${marker}`);
@@ -171,6 +179,9 @@ if (html.includes('cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.
 if (html.includes('localStorage.clear();') || html.includes('sessionStorage.clear();')) {
   throw new Error('Broad storage clearing remains in production');
 }
+if (html.includes('--card-border: 69px solid #FF69B4')) {
+  throw new Error('Broken oversized pink-heart border remains in production');
+}
 
 fs.writeFileSync(filePath, html);
-console.log('Runtime performance, reliability and safety optimizations applied.');
+console.log('Runtime performance, reliability, safety and pink-heart theme fixes applied.');

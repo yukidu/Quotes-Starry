@@ -8,7 +8,6 @@
     environment: 'production',
     productionUrl: 'https://mirror.starry.phd/',
     starryIdOrigin: 'https://id.starry.phd',
-    starryIdLoginPath: '/auth/quotes',
     mirrorApiBase: '/api/mirror',
     mirrorBootstrapUrl: '/api/mirror/bootstrap',
     googleSheetCsvUrl: 'https://docs.google.com/spreadsheets/d/1HufZqMwvvZh735nBMvKnDDI-BnZMUuYmFTA0_3B2lCE/export?format=csv',

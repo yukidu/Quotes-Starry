@@ -6,7 +6,7 @@
     appName: '繁星心鏡',
     appNameEn: 'Starry Mirror',
     environment: 'production',
-    productionUrl: 'https://quotes.starry.phd/',
+    productionUrl: 'https://mirror.starry.phd/',
     starryIdOrigin: 'https://id.starry.phd',
     starryIdLoginPath: '/auth/quotes',
     mirrorApiBase: '/api/mirror',

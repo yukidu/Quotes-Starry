@@ -16,8 +16,7 @@ function removeDivById(id) {
   const commentStart = html.lastIndexOf('<!--', start);
   const commentEnd = commentStart >= 0 ? html.indexOf('-->', commentStart) : -1;
   if (commentStart >= 0 && commentEnd >= commentStart && commentEnd < start) start = commentStart;
-  let scan = html.indexOf('<div', at) >= 0 ? html.lastIndexOf('<div', at) : start;
-  scan = html.indexOf('<div', start);
+  let scan = html.indexOf('<div', start);
   let depth = 0;
   let cursor = scan;
   let end = -1;
@@ -66,7 +65,7 @@ html = html.replace('</body>', `    <script id="starry-mirror-runtime">\n${mirro
 for (const forbidden of ['DeviceMotionEvent','devicemotion','handleShake','shakeRandomCard','shakeTutorialModal','closeShakeTutorial','phoneShake','animate-shake','搖一搖']) {
   if (html.includes(forbidden)) throw new Error(`Shake code still present in production: ${forbidden}`);
 }
-for (const required of ['繁星心鏡','Starry Mirror','starry-mirror-runtime','/api/mirror/bootstrap','AI解籤','我的收藏','mirror-battery-pop']) {
+for (const required of ['繁星心鏡','Starry Mirror','starry-mirror-runtime','mirrorApiBase','/bootstrap','AI解籤','我的收藏','mirror-battery-pop']) {
   if (!html.includes(required)) throw new Error(`Mirror production marker missing: ${required}`);
 }
 if (html.includes('await autoImport(); window.randomStyle(true);')) throw new Error('Browser still loads Google Sheet directly on startup');

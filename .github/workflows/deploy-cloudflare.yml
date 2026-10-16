@@ -33,7 +33,7 @@ jobs:
       - name: Build and verify Starry Mirror
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           node --check app-config.js
           node --check platform.js
           node --check starry-ui.js

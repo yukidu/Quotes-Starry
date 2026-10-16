@@ -1,4 +1,5 @@
-name = "quotes-starry-phd"
+name = "starry-mirror"
+main = "worker/v2.js"
 compatibility_date = "2026-10-13"
 workers_dev = true
 preview_urls = true
@@ -9,4 +10,20 @@ custom_domain = true
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[ai]
+binding = "AI"
+
+[[services]]
+binding = "STARRY_ECOSYSTEM"
+service = "echostars"
+
+[vars]
+MIRROR_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HufZqMwvvZh735nBMvKnDDI-BnZMUuYmFTA0_3B2lCE/export?format=csv"
+MIRROR_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
+
+# MIRROR_DB 由 GitHub Actions 自動尋找或建立 starry_mirror_db 後，
+# 在部署工作區加入正式 database_id，避免把不存在的 ID 寫死。

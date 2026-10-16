@@ -9,8 +9,8 @@
     isStandalone: window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true
   });
 
-  let motionHandler = null;
   let currentIdentity = null;
+  let currentToken = '';
   const scriptLoads = new Map();
 
   function downloadBlob(blob, fileName) {
@@ -26,7 +26,6 @@
   function loadScriptOnce(src, globalName = '') {
     if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
     if (scriptLoads.has(src)) return scriptLoads.get(src);
-
     const pending = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = src;
@@ -43,7 +42,6 @@
       scriptLoads.delete(src);
       throw error;
     });
-
     scriptLoads.set(src, pending);
     return pending;
   }
@@ -74,32 +72,13 @@
         if (error?.name === 'AbortError') return { shared: false, copied: false, canceled: true };
       }
     }
-
     if (navigator.clipboard?.writeText) {
       try {
         await navigator.clipboard.writeText(url);
         return { shared: false, copied: true, canceled: false };
-      } catch (error) {}
+      } catch {}
     }
-
     return { shared: false, copied: false, canceled: false };
-  }
-
-  async function enableMotion(handler) {
-    if (motionHandler === handler) return true;
-    if (motionHandler) window.removeEventListener('devicemotion', motionHandler, true);
-    if (typeof DeviceMotionEvent === 'undefined') return false;
-    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const permission = await DeviceMotionEvent.requestPermission();
-        if (permission !== 'granted') return false;
-      } catch (error) {
-        return false;
-      }
-    }
-    motionHandler = handler;
-    window.addEventListener('devicemotion', motionHandler, true);
-    return true;
   }
 
   function getDisplayName(identity = currentIdentity) {
@@ -112,49 +91,38 @@
     return currentIdentity ? { ...currentIdentity } : null;
   }
 
+  function getToken() {
+    return currentToken;
+  }
+
   function renderIdentity(identity) {
     const welcome = document.getElementById('welcomeMsg');
     const welcomeLine = document.getElementById('welcomeLine');
     const displayName = getDisplayName(identity);
-
     if (welcome && welcomeLine) {
       welcome.textContent = displayName ? `歡迎你，${displayName}` : '歡迎你';
       welcomeLine.style.display = 'flex';
     }
-
     window.StarryUI?.renderIdentity?.(identity, displayName);
   }
 
   async function refreshIdentity() {
-    const origin = window.StarryConfig.starryIdOrigin;
     currentIdentity = null;
+    currentToken = '';
     renderIdentity(null);
-
     try {
-      const response = await fetch(origin + '/api/apps/quotes/identity', {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' }
+      const response = await fetch(window.StarryConfig.starryIdOrigin + '/api/apps/starry-mirror/session', {
+        method: 'GET', mode: 'cors', credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' }
       });
-      const identity = await response.json().catch(() => null);
-      if (response.ok && identity?.authenticated && identity?.name) {
-        currentIdentity = identity;
-        renderIdentity(currentIdentity);
-      } else {
-        currentIdentity = null;
-        renderIdentity(null);
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.authenticated && data?.token && data?.identity?.name) {
+        currentToken = String(data.token);
+        currentIdentity = { ...data.identity, authenticated: true };
       }
-
-      const url = new URL(window.location.href);
-      if (url.searchParams.get('starry') === 'login') {
-        url.searchParams.delete('starry');
-        history.replaceState(null, '', url.pathname + url.search + url.hash);
-      }
+      renderIdentity(currentIdentity);
+      window.dispatchEvent(new CustomEvent('starry-mirror-identity', { detail: { identity: getIdentity(), token: currentToken } }));
       return getIdentity();
-    } catch (error) {
-      currentIdentity = null;
+    } catch {
       renderIdentity(null);
       return null;
     }
@@ -170,8 +138,7 @@
     assets: Object.freeze({ loadScriptOnce }),
     files: Object.freeze({ downloadBlob }),
     share: Object.freeze({ shareBlob, shareUrl }),
-    motion: Object.freeze({ enable: enableMotion }),
-    auth: Object.freeze({ refreshIdentity, getIdentity, getDisplayName })
+    auth: Object.freeze({ refreshIdentity, getIdentity, getDisplayName, getToken })
   });
 
   if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', initIdentity, { once: true });

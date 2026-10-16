@@ -38,13 +38,21 @@ jobs:
           node --check platform.js
           node --check starry-ui.js
           node --check mirror-app.js
+          node --check mirror-enhancements.js
           node --check worker/index.js
           node --check worker/main.js
+          node --check worker/v2.js
           node --check scripts/build-static.mjs
           node --check scripts/optimize-runtime.mjs
           node --check scripts/apply-mirror-runtime.mjs
           node --check scripts/fit-answer-overlay.mjs
           node --check scripts/configure-d1.mjs
+          grep -q 'main = "worker/v2.js"' wrangler.toml
+          grep -q '生命靈數_第一優先' worker/v2.js
+          grep -q 'mirror_ai_ratings' worker/v2.js
+          grep -q 'mirror_ai_ratings' schema.sql
+          grep -q 'mirror_ai_reading_members' schema.sql
+          grep -q '會員解籤紀錄' mirror-enhancements.js
           node scripts/build-static.mjs
           node scripts/optimize-runtime.mjs
           node scripts/apply-mirror-runtime.mjs
@@ -53,9 +61,13 @@ jobs:
           grep -q '繁星心鏡' dist/index.html
           grep -q 'Starry Mirror' dist/index.html
           grep -q 'starry-mirror-runtime' dist/index.html
+          grep -q 'starry-mirror-enhancements' dist/index.html
           grep -q '/api/mirror/bootstrap' dist/index.html
           grep -q '我的收藏' dist/index.html
           grep -q 'AI解籤紀錄' dist/index.html
+          grep -q '會員解籤紀錄' dist/index.html
+          grep -q '/ai-rating' dist/index.html
+          grep -q '本金句全體按讚' dist/index.html
           grep -q '超級管理員' dist/index.html
           grep -q 'mirror-battery-pop' dist/index.html
           grep -q '已抽' dist/index.html
@@ -66,6 +78,11 @@ jobs:
           ! grep -q 'shakeTutorialModal' dist/index.html
           ! grep -q 'closeShakeTutorial' dist/index.html
           ! grep -q '搖一搖' dist/index.html
+          ! grep -q 'TOGGLE_LABELS' dist/index.html
+          ! grep -q 'drawRewardEnabled' dist/index.html
+          ! grep -q 'favoriteRewardEnabled' dist/index.html
+          ! grep -q 'shareCostEnabled' dist/index.html
+          ! grep -q 'aiCostEnabled' dist/index.html
           ! grep -q 'await autoImport(); window.randomStyle(true);' dist/index.html
 
       - name: Verify Cloudflare credentials
@@ -114,7 +131,7 @@ jobs:
             nonce="${GITHUB_SHA}-${attempt}"
             site_ok=0; health_ok=0; id_ok=0
             if curl -A "$user_agent" --connect-timeout 5 --max-time 15 -fsS "https://quotes.starry.phd/?smoke=${nonce}" -o /tmp/mirror.html; then
-              if grep -q '繁星心鏡' /tmp/mirror.html && grep -q 'Starry Mirror' /tmp/mirror.html && grep -q '/api/mirror/bootstrap' /tmp/mirror.html && grep -q 'AI解籤紀錄' /tmp/mirror.html && ! grep -q 'shakeTutorialModal' /tmp/mirror.html && ! grep -q '搖一搖' /tmp/mirror.html; then site_ok=1; fi
+              if grep -q '繁星心鏡' /tmp/mirror.html && grep -q 'Starry Mirror' /tmp/mirror.html && grep -q '/api/mirror/bootstrap' /tmp/mirror.html && grep -q 'AI解籤紀錄' /tmp/mirror.html && grep -q '會員解籤紀錄' /tmp/mirror.html && grep -q '/ai-rating' /tmp/mirror.html && ! grep -q 'shakeTutorialModal' /tmp/mirror.html && ! grep -q '搖一搖' /tmp/mirror.html && ! grep -q 'TOGGLE_LABELS' /tmp/mirror.html; then site_ok=1; fi
             fi
             if curl -A "$user_agent" --connect-timeout 5 --max-time 15 -fsS "https://quotes.starry.phd/api/mirror/health?smoke=${nonce}" -o /tmp/health.json; then
               if node -e "const x=JSON.parse(require('fs').readFileSync('/tmp/health.json','utf8'));if(x.app!=='starry-mirror'||x.status!=='ok'||x.d1!==true||x.ai!==true||x.bridge!==true)process.exit(1)"; then health_ok=1; fi

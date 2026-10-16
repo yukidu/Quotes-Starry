@@ -5,7 +5,7 @@ workers_dev = true
 preview_urls = true
 
 [[routes]]
-pattern = "quotes.starry.phd"
+pattern = "mirror.starry.phd"
 custom_domain = true
 
 [assets]
@@ -17,6 +17,7 @@ run_worker_first = ["/api/*"]
 [ai]
 binding = "AI"
 
+# 內部 Service Binding 暫時沿用現有 Cloudflare Worker 名稱；這不是公開品牌名稱。
 [[services]]
 binding = "STARRY_ECOSYSTEM"
 service = "echostars"

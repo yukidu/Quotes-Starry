@@ -37,23 +37,33 @@ jobs:
           node --check app-config.js
           node --check platform.js
           node --check starry-ui.js
+          node --check ecosystem-sso.js
           node --check mirror-app.js
           node --check mirror-enhancements.js
           node --check worker/index.js
           node --check worker/main.js
           node --check worker/v2.js
           node --check scripts/build-static.mjs
+          node --check scripts/inject-ecosystem-sso.mjs
           node --check scripts/optimize-runtime.mjs
           node --check scripts/apply-mirror-runtime.mjs
           node --check scripts/fit-answer-overlay.mjs
           node --check scripts/configure-d1.mjs
           grep -q 'main = "worker/v2.js"' wrangler.toml
+          grep -q 'pattern = "mirror.starry.phd"' wrangler.toml
+          ! grep -q 'quotes.starry.phd' wrangler.toml
+          grep -q "productionUrl: 'https://mirror.starry.phd/'" app-config.js
           grep -q '生命靈數_第一優先' worker/v2.js
           grep -q 'mirror_ai_ratings' worker/v2.js
           grep -q 'mirror_ai_ratings' schema.sql
           grep -q 'mirror_ai_reading_members' schema.sql
           grep -q '會員解籤紀錄' mirror-enhancements.js
+          grep -q 'StarryMirrorEcosystemAuth' ecosystem-sso.js
+          grep -q '/api/google-sync' ecosystem-sso.js
+          grep -q "appId: APP_ID" ecosystem-sso.js
+          grep -q '登出繁星通行證' ecosystem-sso.js
           node scripts/build-static.mjs
+          node scripts/inject-ecosystem-sso.mjs
           node scripts/optimize-runtime.mjs
           node scripts/apply-mirror-runtime.mjs
           node scripts/fit-answer-overlay.mjs
@@ -62,6 +72,8 @@ jobs:
           grep -q 'Starry Mirror' dist/index.html
           grep -q 'starry-mirror-runtime' dist/index.html
           grep -q 'starry-mirror-enhancements' dist/index.html
+          grep -q 'StarryMirrorEcosystemAuth' dist/index.html
+          grep -q '登入繁星通行證' dist/index.html
           grep -q '/api/mirror/bootstrap' dist/index.html
           grep -q '我的收藏' dist/index.html
           grep -q 'AI解籤紀錄' dist/index.html
@@ -71,6 +83,7 @@ jobs:
           grep -q '超級管理員' dist/index.html
           grep -q 'mirror-battery-pop' dist/index.html
           grep -q '已抽' dist/index.html
+          ! grep -q 'quotes.starry.phd' dist/index.html
           ! grep -q 'DeviceMotionEvent' dist/index.html
           ! grep -q 'devicemotion' dist/index.html
           ! grep -q 'handleShake' dist/index.html
@@ -130,15 +143,15 @@ jobs:
           for attempt in $(seq 1 18); do
             nonce="${GITHUB_SHA}-${attempt}"
             site_ok=0; health_ok=0; id_ok=0
-            if curl -A "$user_agent" --connect-timeout 5 --max-time 15 -fsS "https://quotes.starry.phd/?smoke=${nonce}" -o /tmp/mirror.html; then
-              if grep -q '繁星心鏡' /tmp/mirror.html && grep -q 'Starry Mirror' /tmp/mirror.html && grep -q '/api/mirror/bootstrap' /tmp/mirror.html && grep -q 'AI解籤紀錄' /tmp/mirror.html && grep -q '會員解籤紀錄' /tmp/mirror.html && grep -q '/ai-rating' /tmp/mirror.html && ! grep -q 'shakeTutorialModal' /tmp/mirror.html && ! grep -q '搖一搖' /tmp/mirror.html && ! grep -q 'TOGGLE_LABELS' /tmp/mirror.html; then site_ok=1; fi
+            if curl -A "$user_agent" --connect-timeout 5 --max-time 15 -fsS "https://mirror.starry.phd/?smoke=${nonce}" -o /tmp/mirror.html; then
+              if grep -q '繁星心鏡' /tmp/mirror.html && grep -q 'Starry Mirror' /tmp/mirror.html && grep -q 'StarryMirrorEcosystemAuth' /tmp/mirror.html && grep -q '/api/mirror/bootstrap' /tmp/mirror.html && grep -q 'AI解籤紀錄' /tmp/mirror.html && grep -q '會員解籤紀錄' /tmp/mirror.html && grep -q '/ai-rating' /tmp/mirror.html && ! grep -q 'quotes.starry.phd' /tmp/mirror.html && ! grep -q 'shakeTutorialModal' /tmp/mirror.html && ! grep -q '搖一搖' /tmp/mirror.html && ! grep -q 'TOGGLE_LABELS' /tmp/mirror.html; then site_ok=1; fi
             fi
-            if curl -A "$user_agent" --connect-timeout 5 --max-time 15 -fsS "https://quotes.starry.phd/api/mirror/health?smoke=${nonce}" -o /tmp/health.json; then
+            if curl -A "$user_agent" --connect-timeout 5 --max-time 15 -fsS "https://mirror.starry.phd/api/mirror/health?smoke=${nonce}" -o /tmp/health.json; then
               if node -e "const x=JSON.parse(require('fs').readFileSync('/tmp/health.json','utf8'));if(x.app!=='starry-mirror'||x.status!=='ok'||x.d1!==true||x.ai!==true||x.bridge!==true)process.exit(1)"; then health_ok=1; fi
             fi
-            code=$(curl -A "$user_agent" --connect-timeout 5 --max-time 15 -sS -o /tmp/id-session.json -D /tmp/id-session.headers -w '%{http_code}' -H 'Origin: https://quotes.starry.phd' "https://id.starry.phd/api/apps/starry-mirror/session?smoke=${nonce}" || true)
+            code=$(curl -A "$user_agent" --connect-timeout 5 --max-time 15 -sS -o /tmp/id-session.json -D /tmp/id-session.headers -w '%{http_code}' -H 'Origin: https://mirror.starry.phd' "https://id.starry.phd/api/apps/starry-mirror/session?smoke=${nonce}" || true)
             tr -d '\r' < /tmp/id-session.headers > /tmp/id-session.clean || true
-            if [ "$code" = '401' ] && grep -Eqi '^access-control-allow-origin: https://quotes\.starry\.phd$' /tmp/id-session.clean && node -e "const x=JSON.parse(require('fs').readFileSync('/tmp/id-session.json','utf8'));if(x.authenticated!==false)process.exit(1)"; then id_ok=1; fi
+            if [ "$code" = '401' ] && grep -Eqi '^access-control-allow-origin: https://mirror\.starry\.phd$' /tmp/id-session.clean && node -e "const x=JSON.parse(require('fs').readFileSync('/tmp/id-session.json','utf8'));if(x.authenticated!==false)process.exit(1)"; then id_ok=1; fi
             echo "site=${site_ok}, health=${health_ok}, starry_id=${id_ok}"
             if [ "$site_ok" = 1 ] && [ "$health_ok" = 1 ] && [ "$id_ok" = 1 ]; then exit 0; fi
             sleep 5

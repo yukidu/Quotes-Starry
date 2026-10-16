@@ -3,12 +3,24 @@ name: Deploy quotes.starry.phd
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/dependabot.yml'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/dependabot.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: quotes-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   deploy:
@@ -89,8 +101,6 @@ jobs:
         run: |
           set -euo pipefail
           user_agent='Mozilla/5.0 StarryQuotesProductionSmoke/1.0'
-          echo 'Waiting for production propagation...'
-          sleep 10
 
           for attempt in $(seq 1 18); do
             echo "Production verification attempt ${attempt}/18"

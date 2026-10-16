@@ -7,11 +7,34 @@ if (!fs.existsSync(filePath)) throw new Error('dist/index.html not found');
 let html = fs.readFileSync(filePath, 'utf8');
 const mirrorRuntime = fs.readFileSync(path.join(root, 'mirror-app.js'), 'utf8');
 
-function removeBetween(startMarker, endMarker, label) {
-  const start = html.indexOf(startMarker);
-  if (start < 0) throw new Error(`Missing ${label} start`);
-  const end = html.indexOf(endMarker, start);
-  if (end < 0) throw new Error(`Missing ${label} end`);
+function removeDivById(id) {
+  const marker = `id="${id}"`;
+  const at = html.indexOf(marker);
+  if (at < 0) throw new Error(`Missing element ${id}`);
+  let start = html.lastIndexOf('<div', at);
+  if (start < 0) throw new Error(`Missing opening div for ${id}`);
+  const commentStart = html.lastIndexOf('<!--', start);
+  const commentEnd = commentStart >= 0 ? html.indexOf('-->', commentStart) : -1;
+  if (commentStart >= 0 && commentEnd >= commentStart && commentEnd < start) start = commentStart;
+  let scan = html.indexOf('<div', at) >= 0 ? html.lastIndexOf('<div', at) : start;
+  scan = html.indexOf('<div', start);
+  let depth = 0;
+  let cursor = scan;
+  let end = -1;
+  while (cursor >= 0 && cursor < html.length) {
+    const nextOpen = html.indexOf('<div', cursor);
+    const nextClose = html.indexOf('</div>', cursor);
+    if (nextClose < 0) break;
+    if (nextOpen >= 0 && nextOpen < nextClose) {
+      depth += 1;
+      cursor = html.indexOf('>', nextOpen) + 1;
+    } else {
+      depth -= 1;
+      cursor = nextClose + 6;
+      if (depth === 0) { end = cursor; break; }
+    }
+  }
+  if (end < 0) throw new Error(`Unable to balance divs for ${id}`);
   html = html.slice(0, start) + html.slice(end);
 }
 
@@ -20,10 +43,8 @@ html = html.replace(/<meta property="og:title" content="[^"]*">/i, '<meta proper
 html = html.replaceAll('繁星語錄 Quotes Starry', '繁星心鏡 Starry Mirror');
 html = html.replaceAll('繁星語錄', '繁星心鏡');
 
-removeBetween('    <!-- 搖一搖教學彈窗', '    <!-- 紀錄視窗', 'shake tutorial modal');
-
-html = html.replace(/\s*@keyframes phoneShake\s*\{[^}]*\}\s*/g, '\n');
-html = html.replace(/\s*\.animate-shake\s*\{[^}]*\}\s*/g, '\n');
+removeDivById('shakeTutorialModal');
+html = html.replace(/^\s*@keyframes phoneShake[^\n]*\n\s*\.animate-shake[^\n]*\n?/m, '');
 html = html.replace("        let lastShakeTime = 0, duduTemporaryHidden = false;", "        let duduTemporaryHidden = false;");
 html = html.replace(/\n\s*if \(count === 1\) setTimeout\(\(\) => document\.getElementById\('shakeTutorialModal'\)\.classList\.remove\('hidden'\), 300\);/g, '');
 html = html.replace(/\n\s*window\.closeShakeTutorial\s*=\s*\(\)\s*=>\s*document\.getElementById\('shakeTutorialModal'\)\.classList\.add\('hidden'\);/g, '');
@@ -37,7 +58,6 @@ const shakeFunctionStart = html.indexOf('        function handleShake(e) {');
 const dropdownStart = html.indexOf('        window.toggleDropdown', shakeFunctionStart);
 if (shakeFunctionStart < 0 || dropdownStart < 0) throw new Error('Shake handler range not found');
 html = html.slice(0, shakeFunctionStart) + html.slice(dropdownStart);
-
 html = html.replace('                await autoImport(); window.randomStyle(true);', '                window.randomStyle(true);');
 
 if (html.includes('id="starry-mirror-runtime"')) throw new Error('Mirror runtime already injected');

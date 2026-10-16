@@ -6,6 +6,7 @@ const filePath = path.join(root, 'dist', 'index.html');
 if (!fs.existsSync(filePath)) throw new Error('dist/index.html not found');
 let html = fs.readFileSync(filePath, 'utf8');
 const mirrorRuntime = fs.readFileSync(path.join(root, 'mirror-app.js'), 'utf8');
+const mirrorV2Ui = fs.readFileSync(path.join(root, 'mirror-v2-ui.js'), 'utf8');
 
 function removeDivById(id) {
   const marker = `id="${id}"`;
@@ -60,12 +61,12 @@ html = html.slice(0, shakeFunctionStart) + html.slice(dropdownStart);
 html = html.replace('                await autoImport(); window.randomStyle(true);', '                window.randomStyle(true);');
 
 if (html.includes('id="starry-mirror-runtime"')) throw new Error('Mirror runtime already injected');
-html = html.replace('</body>', `    <script id="starry-mirror-runtime">\n${mirrorRuntime}\n    </script>\n</body>`);
+html = html.replace('</body>', `    <script id="starry-mirror-runtime">\n${mirrorRuntime}\n    </script>\n    <script id="starry-mirror-v2-ui">\n${mirrorV2Ui}\n    </script>\n</body>`);
 
 for (const forbidden of ['DeviceMotionEvent','devicemotion','handleShake','shakeRandomCard','shakeTutorialModal','closeShakeTutorial','phoneShake','animate-shake','搖一搖']) {
   if (html.includes(forbidden)) throw new Error(`Shake code still present in production: ${forbidden}`);
 }
-for (const required of ['繁星心鏡','Starry Mirror','starry-mirror-runtime','mirrorApiBase','/bootstrap','AI解籤','我的收藏','mirror-battery-pop']) {
+for (const required of ['繁星心鏡','Starry Mirror','starry-mirror-runtime','starry-mirror-v2-ui','mirrorApiBase','/bootstrap','AI解籤','我的收藏','mirror-battery-pop','會員解籤紀錄','ai-feedback']) {
   if (!html.includes(required)) throw new Error(`Mirror production marker missing: ${required}`);
 }
 if (html.includes('await autoImport(); window.randomStyle(true);')) throw new Error('Browser still loads Google Sheet directly on startup');

@@ -10,6 +10,7 @@
     starryIdOrigin: 'https://id.starry.phd',
     starryIdLoginPath: '/auth/quotes',
     mirrorApiBase: '/api/mirror',
+    mirrorBootstrapUrl: '/api/mirror/bootstrap',
     googleSheetCsvUrl: 'https://docs.google.com/spreadsheets/d/1HufZqMwvvZh735nBMvKnDDI-BnZMUuYmFTA0_3B2lCE/export?format=csv',
     qrCodeApiBaseUrl: 'https://api.qrserver.com/v1/create-qr-code/',
     html2CanvasUrl: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',

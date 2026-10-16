@@ -5,8 +5,13 @@ const root = process.cwd();
 const filePath = path.join(root, 'dist', 'index.html');
 if (!fs.existsSync(filePath)) throw new Error('dist/index.html not found');
 let html = fs.readFileSync(filePath, 'utf8');
-const mirrorRuntime = fs.readFileSync(path.join(root, 'mirror-app.js'), 'utf8');
-const mirrorV2Ui = fs.readFileSync(path.join(root, 'mirror-v2-ui.js'), 'utf8');
+let mirrorRuntime = fs.readFileSync(path.join(root, 'mirror-app.js'), 'utf8');
+const mirrorEnhancements = fs.readFileSync(path.join(root, 'mirror-enhancements.js'), 'utf8');
+
+// 舊版曾有「一鍵暫停獎勵／扣款」開關；正式版完全移除，數值設 0 即代表不增不減。
+mirrorRuntime = mirrorRuntime.replace(/\n\s*const TOGGLE_LABELS=\{[^\n]+\};/, '');
+mirrorRuntime = mirrorRuntime.replace(/\$\{Object\.entries\(TOGGLE_LABELS\)[\s\S]*?\.join\(''\)\}/, '');
+mirrorRuntime = mirrorRuntime.replace('所有 X 數值都可以在這裡改，不必重新部署。下方開關就是「一鍵暫停獎勵／扣款」：發生異常時可立即單獨關閉某一種規則。', '所有 X 數值都可以在這裡改，不必重新部署。數值設為 0 代表該項不增加或不扣除。');
 
 function removeDivById(id) {
   const marker = `id="${id}"`;
@@ -61,15 +66,15 @@ html = html.slice(0, shakeFunctionStart) + html.slice(dropdownStart);
 html = html.replace('                await autoImport(); window.randomStyle(true);', '                window.randomStyle(true);');
 
 if (html.includes('id="starry-mirror-runtime"')) throw new Error('Mirror runtime already injected');
-html = html.replace('</body>', `    <script id="starry-mirror-runtime">\n${mirrorRuntime}\n    </script>\n    <script id="starry-mirror-v2-ui">\n${mirrorV2Ui}\n    </script>\n</body>`);
+html = html.replace('</body>', `    <script id="starry-mirror-runtime">\n${mirrorRuntime}\n    </script>\n    <script id="starry-mirror-enhancements">\n${mirrorEnhancements}\n    </script>\n</body>`);
 
-for (const forbidden of ['DeviceMotionEvent','devicemotion','handleShake','shakeRandomCard','shakeTutorialModal','closeShakeTutorial','phoneShake','animate-shake','搖一搖']) {
-  if (html.includes(forbidden)) throw new Error(`Shake code still present in production: ${forbidden}`);
+for (const forbidden of ['DeviceMotionEvent','devicemotion','handleShake','shakeRandomCard','shakeTutorialModal','closeShakeTutorial','phoneShake','animate-shake','搖一搖','TOGGLE_LABELS','drawRewardEnabled','favoriteRewardEnabled','shareCostEnabled','aiCostEnabled']) {
+  if (html.includes(forbidden)) throw new Error(`Forbidden legacy feature still present in production: ${forbidden}`);
 }
-for (const required of ['繁星心鏡','Starry Mirror','starry-mirror-runtime','starry-mirror-v2-ui','mirrorApiBase','/bootstrap','AI解籤','我的收藏','mirror-battery-pop','會員解籤紀錄','ai-feedback']) {
+for (const required of ['繁星心鏡','Starry Mirror','starry-mirror-runtime','starry-mirror-enhancements','mirrorApiBase','/bootstrap','AI解籤','我的收藏','mirror-battery-pop','會員解籤紀錄','/ai-rating','本金句全體按讚']) {
   if (!html.includes(required)) throw new Error(`Mirror production marker missing: ${required}`);
 }
 if (html.includes('await autoImport(); window.randomStyle(true);')) throw new Error('Browser still loads Google Sheet directly on startup');
 
 fs.writeFileSync(filePath, html);
-console.log('Starry Mirror runtime applied; shake feature removed completely from production.');
+console.log('Starry Mirror runtime applied; shake and reward pause toggles removed from production.');
